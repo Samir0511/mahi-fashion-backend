@@ -1,7 +1,7 @@
 import { DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import sharp from 'sharp';
 import { randomUUID } from 'crypto';
-import { r2Client, r2Config } from '../config/r2.js';
+import { getR2Client, getR2Config } from '../config/r2.js';
 
 const optimizeImage = async (buffer) => {
   return sharp(buffer)
@@ -12,6 +12,8 @@ const optimizeImage = async (buffer) => {
 };
 
 const uploadWithRetry = async (key, buffer, mimeType = 'image/webp') => {
+  const r2Client = getR2Client();
+  const r2Config = getR2Config();
   const command = new PutObjectCommand({
     Bucket: r2Config.bucketName,
     Key: key,
@@ -75,6 +77,8 @@ export const uploadMultiple = async (files, productId = 'products') => {
 export const deleteImage = async (key) => {
   if (!key) return;
 
+  const r2Client = getR2Client();
+  const r2Config = getR2Config();
   const command = new DeleteObjectCommand({
     Bucket: r2Config.bucketName,
     Key: key

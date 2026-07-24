@@ -5,14 +5,14 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const projectRoot = path.resolve(__dirname, '..', '..', '..');
-const serverRoot = path.resolve(projectRoot, 'server');
+const serverRoot = path.resolve(__dirname, '..', '..');
+const repoRoot = path.resolve(serverRoot, '..');
 
 const envCandidates = [
   path.join(serverRoot, '.env'),
-  path.join(projectRoot, '.env'),
+  path.join(repoRoot, '.env'),
   path.join(serverRoot, '.env.example'),
-  path.join(projectRoot, '.env.example')
+  path.join(repoRoot, '.env.example')
 ];
 
 envCandidates.forEach((envPath) => {

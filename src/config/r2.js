@@ -8,25 +8,41 @@ const requiredEnv = [
   'R2_PUBLIC_URL'
 ];
 
-const missing = requiredEnv.filter((name) => !process.env[name]);
-if (missing.length > 0) {
-  throw new Error(`Missing Cloudflare R2 env vars: ${missing.join(', ')}`);
-}
+let r2Client = null;
 
-const r2Client = new S3Client({
-  region: 'auto',
-  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY
-  },
-  forcePathStyle: false
-});
+const getMissingEnv = () => requiredEnv.filter((name) => !process.env[name]);
 
-export const r2Config = {
-  accountId: process.env.R2_ACCOUNT_ID,
-  bucketName: process.env.R2_BUCKET_NAME,
-  publicUrl: process.env.R2_PUBLIC_URL.replace(/\/$/, '')
+export const getR2Config = () => {
+  const missing = getMissingEnv();
+  if (missing.length > 0) {
+    throw Object.assign(new Error(`Missing Cloudflare R2 env vars: ${missing.join(', ')}`), {
+      statusCode: 500
+    });
+  }
+
+  return {
+    accountId: process.env.R2_ACCOUNT_ID,
+    bucketName: process.env.R2_BUCKET_NAME,
+    publicUrl: process.env.R2_PUBLIC_URL.replace(/\/$/, '')
+  };
 };
 
-export { r2Client };
+export const getR2Client = () => {
+  if (r2Client) {
+    return r2Client;
+  }
+
+  const config = getR2Config();
+
+  r2Client = new S3Client({
+    region: 'auto',
+    endpoint: `https://${config.accountId}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId: process.env.R2_ACCESS_KEY_ID,
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY
+    },
+    forcePathStyle: false
+  });
+
+  return r2Client;
+};

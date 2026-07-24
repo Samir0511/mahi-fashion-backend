@@ -1,10 +1,24 @@
 import mongoose from 'mongoose';
 import { Product } from '../models/Product.js';
 import { Settings } from '../models/Settings.js';
-import { deleteImage, deleteImages, uploadImage } from './r2.service.js';
 import { formatSizes, normalizeMimeType } from '../utils/uploadHelpers.js';
 
 const normalizeText = (value) => String(value ?? '').trim();
+
+const uploadImageToR2 = async (...args) => {
+  const { uploadImage } = await import('./r2.service.js');
+  return uploadImage(...args);
+};
+
+const deleteImageFromR2 = async (...args) => {
+  const { deleteImage } = await import('./r2.service.js');
+  return deleteImage(...args);
+};
+
+const deleteImagesFromR2 = async (...args) => {
+  const { deleteImages } = await import('./r2.service.js');
+  return deleteImages(...args);
+};
 
 const toNumber = (value, fallback = 0) => {
   const parsed = Number.parseFloat(value);
@@ -59,7 +73,7 @@ const rollbackUploadedImages = async (uploadedImages = []) => {
     return;
   }
 
-  const results = await Promise.allSettled(keys.map((key) => deleteImage(key)));
+  const results = await Promise.allSettled(keys.map((key) => deleteImageFromR2(key)));
   const failures = results
     .filter((result) => result.status === 'rejected')
     .map((result) => result.reason?.message || 'Rollback deletion failed');
@@ -77,7 +91,7 @@ const uploadFilesForProduct = async (files, productId) => {
     return [];
   }
 
-  const uploadResults = await Promise.allSettled(files.map((file) => uploadImage(file, productId)));
+  const uploadResults = await Promise.allSettled(files.map((file) => uploadImageToR2(file, productId)));
   const uploadedImages = [];
   const failures = [];
 
@@ -267,7 +281,7 @@ export const replaceCatalogue = async ({ brandDetails, sizeChart, products, file
     const warnings = [];
     if (previousImageKeys.length > 0) {
       try {
-        await deleteImages(previousImageKeys);
+          await deleteImagesFromR2(previousImageKeys);
       } catch (error) {
         warnings.push('Catalogue saved, but some old Cloudflare images could not be deleted.');
         console.error('Failed to delete old catalogue images after replacement:', error);
@@ -328,7 +342,7 @@ export const updateProduct = async ({ designNo, payload = {}, files = [], replac
       if (replacePhotos === true) {
         const existingKeys = (product.photos || []).map((photo) => photo.key).filter(Boolean);
         if (existingKeys.length > 0) {
-          await deleteImages(existingKeys);
+          await deleteImagesFromR2(existingKeys);
         }
         product.photos = uploadedPhotos;
       } else {
@@ -372,7 +386,7 @@ export const deleteProduct = async (designNo) => {
   await Product.deleteOne({ designNo });
 
   try {
-    await deleteImages(keys);
+    await deleteImagesFromR2(keys);
   } catch (error) {
     await Product.create(productSnapshot);
     throw error;
@@ -404,7 +418,7 @@ export const deleteProductImage = async (designNo, imageIndex) => {
   await product.save();
 
   try {
-    await deleteImage(photo.key);
+    await deleteImageFromR2(photo.key);
   } catch (error) {
     product.photos = previousPhotos;
     await product.save();
@@ -436,16 +450,16 @@ export const replaceProductImage = async (designNo, imageIndex, file) => {
   let uploadedPhoto = null;
 
   try {
-    uploadedPhoto = await uploadImage(file, product.designNo);
+    uploadedPhoto = await uploadImageToR2(file, product.designNo);
     product.photos[imageIndex] = uploadedPhoto;
     await product.save();
 
     try {
-      await deleteImage(oldPhoto.key);
+      await deleteImageFromR2(oldPhoto.key);
     } catch (deleteError) {
       product.photos[imageIndex] = oldPhoto;
       await product.save();
-      await deleteImage(uploadedPhoto.key).catch((rollbackError) => {
+      await deleteImageFromR2(uploadedPhoto.key).catch((rollbackError) => {
         console.error('Rollback after replaceProductImage failed:', rollbackError);
       });
       throw deleteError;
@@ -458,7 +472,7 @@ export const replaceProductImage = async (designNo, imageIndex, file) => {
     };
   } catch (error) {
     if (uploadedPhoto?.key) {
-      await deleteImage(uploadedPhoto.key).catch((rollbackError) => {
+      await deleteImageFromR2(uploadedPhoto.key).catch((rollbackError) => {
         console.error('Rollback after replaceProductImage failed:', rollbackError);
       });
     }
