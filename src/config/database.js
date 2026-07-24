@@ -10,8 +10,8 @@ if (!globalMongoose.__mahiMongoCache) {
 }
 
 export const connectDatabase = async () => {
-  const mongoUri = process.env.MONGODB_URI;
-  const dbName = process.env.MONGODB_DB_NAME || 'mahi-fashion';
+  const mongoUri =process.env.MONGODB_URI;
+  const dbName = process.env.MONGODB_DB_NAME;
   const cache = globalMongoose.__mahiMongoCache;
 
   if (!mongoUri) {

@@ -13,6 +13,7 @@ const configuredOrigins = (process.env.CORS_ALLOWED_ORIGINS || process.env.FRONT
 
 const allowedOrigins = new Set([
   'http://localhost:4200',
+  'https://mahi-fashion.vercel.app',
   ...configuredOrigins
 ]);
 
