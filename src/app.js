@@ -6,7 +6,28 @@ import adminRoutes from './routes/admin.routes.js';
 
 const app = express();
 
-app.use(cors());
+const configuredOrigins = (process.env.CORS_ALLOWED_ORIGINS || process.env.FRONTEND_URL || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const allowedOrigins = new Set([
+  'http://localhost:4200',
+  ...configuredOrigins
+]);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.has(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(Object.assign(new Error(`Origin "${origin}" is not allowed by CORS`), { statusCode: 403 }));
+    },
+    credentials: true
+  })
+);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
